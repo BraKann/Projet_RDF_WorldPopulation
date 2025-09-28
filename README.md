@@ -25,7 +25,7 @@ OpenRefine est un outil open source pour nettoyer et transformer les données.
 
 **Installation :**
 
-1. Télécharger OpenRefine depuis : [https://openrefine.org/download.html](https://openrefine.org/download.html)
+1. Télécharger OpenRefine depuis : [https://openrefine.org/download.html](https://openrefine.org/download.html) et l'extension [OpenRefine RDF Extension](https://github.com/stkenny/grefine-rdf-extension)
 2. Extraire le fichier téléchargé.
 3. Lancer OpenRefine :
 
