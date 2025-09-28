@@ -1,0 +1,22 @@
+PREFIX ex: <http://example.org/population#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+  ?country a ex:Country ;
+           ex:rank ?rank ;
+           ex:cca3 ?cca3 ;
+           ex:name ?name ;
+           ex:capital ?capital ;
+           ex:continent ?continent ;
+           ex:population2022 ?pop2022 .
+}
+FROM <file:population.csv>
+WHERE {
+  BIND (URI(CONCAT("http://example.org/country/", ?CCA3)) AS ?country)
+  BIND (?Rank AS ?rank)
+  BIND (?CCA3 AS ?cca3)
+  BIND (?Country/Territory AS ?name)
+  BIND (?Capital AS ?capital)
+  BIND (?Continent AS ?continent)
+  BIND (xsd:integer(?`2022 Population`) AS ?pop2022)
+}
