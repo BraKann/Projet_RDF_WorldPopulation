@@ -57,17 +57,13 @@ Fuseki est un serveur pour publier et interroger des données RDF avec SPARQL.
 
 **Utilisation :**
 
-* Interroger vos données avec SPARQL.
+* Interroger vos données avec des Query SPARQL via OpenRefine.
 * Publier les données sur le cloud pour les connecter avec d’autres données Linked Data.
 
 ### 3. Obtention du fichier CSV
 
 Le jeu de données **World Population Dataset** peut être téléchargé depuis Kaggle :
 [https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset](https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset)
-
-* Créer un compte Kaggle si nécessaire.
-* Télécharger le fichier CSV (`world_population.csv`).
-* Utiliser ce fichier dans OpenRefine pour le nettoyage et la transformation.
 
 ---
 
