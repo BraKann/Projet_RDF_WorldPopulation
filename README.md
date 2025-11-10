@@ -68,9 +68,9 @@ Le jeu de données **World Population Dataset** peut être téléchargé depuis 
 
 ### 4. Utiliser nos données
 
-Vous pouvez faire des requêtes sur notre graphe à l'adresse :
+* Vous pouvez faire des requêtes sur notre graphe à l'adresse :
 https://api.triplydb.com/Asserche/worldPopulation/sparql
-Et vous pouvez accéder au graphe à l'adresse :
+* Et vous pouvez accéder au graphe à l'adresse :
 https://triplydb.com/Asserche/worldPopulation/sparql
 ---
 
