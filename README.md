@@ -66,7 +66,13 @@ Le jeu de données **World Population Dataset** peut être téléchargé depuis 
 [https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset](https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset)
 
 
-### 4. Utiliser nos données
+### 4. Présentation des données
+
+Vous allez trouver un graphe sur l'objet qui représente le pays Afghanistan.
+![Image du Graphe](./screen/grapheForAfghanistan.png)
+
+
+### 5. Utiliser nos données
 
 * Vous pouvez faire des requêtes sur notre graphe à l'adresse :
 https://api.triplydb.com/Asserche/worldPopulation/sparql
@@ -74,7 +80,7 @@ https://api.triplydb.com/Asserche/worldPopulation/sparql
 https://triplydb.com/Asserche/worldPopulation/sparql
 ---
 
-### 5. Utiliser les ontologies RDFS/OWL
+### 6. Utiliser les ontologies RDFS/OWL
 Pour avoir accès aux ontologies dans Fuseki, il faut modifier le fichier de configuration. 
 Vous pouvez trouver un exemple de fichier de configuration de fuseki qui permet les inférences dans le dossier "./fuseki/config". 
 Il vous suffit ensuite d'executer la commande fuseki avec config=[path vers le fichier]
