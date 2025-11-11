@@ -1,0 +1,76 @@
+@prefix : <#> 
+
+@prefix fuseki: <http://jena.apache.org/fuseki#> .
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+PREFIX tdb:    <http://jena.apache.org/2016/tdb#>
+
+@prefix ja: <http://jena.hpl.hp.com/2005/11/Assembler#> .
+
+@prefix text: <http://jena.apache.org/text#> .
+
+@prefix kog: <http://www.bostonontology.com/bigdata/ontologies/2015/9/kognetics#>.        
+
+[] rdf:type fuseki:Server ;
+    ja:context [ ja:cxtName "arq:queryTimeout" ; ja:cxtValue "180000" ] ;
+    fuseki:services (
+        <#world_population>
+    ) .
+
+[] ja:loadClass "com.hp.hpl.jena.tdb.TDB" .
+
+tdb:DatasetTDB rdfs:subClassOf ja:RDFDataset .
+
+tdb:GraphTDB rdfs:subClassOf ja:Model .
+[] ja:loadClass "org.apache.jena.query.text.TextQuery" .
+
+<#world_population> rdf:type fuseki:Service ;
+
+ rdfs:label "TDB RRA" ;
+
+ fuseki:name "world_population" ;
+
+ fuseki:serviceQuery "query" ;
+
+ fuseki:serviceQuery "sparql" ;
+
+ fuseki:serviceUpdate "update" ;
+
+ fuseki:serviceUpload "upload" ;
+
+ fuseki:serviceReadWriteGraphStore "data" ;
+
+ # A separate read-only graph store endpoint:
+
+ fuseki:serviceReadGraphStore "get" ;
+
+ fuseki:dataset <#testDataSet> ;
+.
+
+tdb:GraphTDB rdfs:subClassOf ja:Model .
+
+<#testDataSet> rdf:type ja:RDFDataset ;
+
+ja:defaultGraph <#model2>; 
+
+ .
+<#model2> a ja:InfModel;
+
+ ja:baseModel <#tdbGraph>;
+
+ ja:reasoner
+
+ [ ja:reasonerURL 
+
+ <http://jena.hpl.hp.com/2003/OWLMiniFBRuleReasoner>];
+.
+<#tdbGraph> rdf:type tdb:GraphTDB;
+
+ tdb:location "/run/databases/wp";
+
+ ja:context [ ja:cxtName "arq:queryTimeout" ; ja:cxtValue "60000" ] ;
+
+ .
