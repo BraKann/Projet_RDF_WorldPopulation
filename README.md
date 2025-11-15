@@ -79,6 +79,8 @@ Pour avoir accès aux ontologies dans Fuseki, il faut modifier le fichier de con
 Vous pouvez trouver un exemple de fichier de configuration de fuseki qui permet les inférences dans le dossier "./fuseki/config". 
 Il vous suffit ensuite d'executer la commande fuseki avec config=[path vers le fichier]
 
+### 6. Liaison au Cloud Linked Data
+Pour réaliser la liaison de notre dataset au Web de données liées, nous avons enrichi notre modèle avec deux types de liens externes : le owl:sameAs et le skos:exactMatch
 
 
 ## Réalisation du projet
