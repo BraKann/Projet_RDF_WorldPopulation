@@ -1,0 +1,243 @@
+# ========================================
+# REQUÊTE 1: Analyse comparative Europe vs Afrique
+# Compare les performances footballistiques entre continents
+# ========================================
+
+PREFIX ex: <http://example.org/population/>
+PREFIX exp: <http://example.com/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?continent
+       (COUNT(DISTINCT ?player) AS ?totalPlayers)
+       (COUNT(DISTINCT ?countryName) AS ?countriesRepresented)
+       (ROUND(AVG(?marketValue) * 100) / 100 AS ?avgMarketValue)
+       (ROUND(AVG(?goals) * 100) / 100 AS ?avgGoals)
+       (ROUND(AVG(?assists) * 100) / 100 AS ?avgAssists)
+       (ROUND(AVG(?age)) AS ?avgAge)
+       (ROUND(AVG(?density) * 100) / 100 AS ?avgCountryDensity)
+       (SUM(?goals) AS ?totalGoalsScored)
+       (ROUND(SUM(?marketValue) * 100) / 100 AS ?totalMarketValue)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density .
+  
+  FILTER(?continent = "Europe" || ?continent = "Africa")
+  
+  SERVICE <http://localhost:3030/players/sparql> {
+    ?player rdf:type exp:Player ;
+            foaf:name ?playerName ;
+            dbo:nationality ?nat ;
+            schema:age ?age ;
+            exp:goals ?goals ;
+            exp:assists ?assists ;
+            exp:marketValue ?marketValue .
+    
+    ?nat foaf:name ?nationality .
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?nationality)) || 
+         CONTAINS(LCASE(?nationality), LCASE(?countryName)))
+}
+GROUP BY ?continent
+ORDER BY ?continent
+
+
+# ========================================
+# REQUÊTE 2: Top 10 joueurs des pays à forte densité
+# Identifie les meilleurs joueurs issus de pays densément peuplés
+# ========================================
+
+PREFIX ex: <http://example.org/population/>
+PREFIX exp: <http://example.com/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?playerName ?nationality ?age ?position ?marketValue ?goals ?assists
+       ?countryCapital ?density ?areaKm2
+       ((?goals + ?assists) AS ?totalContributions)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:capital ?countryCapital ;
+           ex:density ?density ;
+           ex:areaKm2 ?areaKm2 .
+  
+  FILTER(?density > 100)
+  
+  SERVICE <http://localhost:3030/players/sparql> {
+    ?player rdf:type exp:Player ;
+            foaf:name ?playerName ;
+            dbo:nationality ?nat ;
+            schema:age ?age ;
+            schema:roleName ?position ;
+            exp:goals ?goals ;
+            exp:assists ?assists ;
+            exp:marketValue ?marketValue .
+    
+    ?nat foaf:name ?nationality .
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?nationality)) || 
+         CONTAINS(LCASE(?nationality), LCASE(?countryName)))
+}
+ORDER BY DESC(?marketValue)
+LIMIT 10
+
+
+# ========================================
+# REQUÊTE 3: Analyse par continent avec ratio performance/superficie
+# Calcule l'efficacité footballistique par km² de territoire
+# ========================================
+
+PREFIX ex: <http://example.org/population/>
+PREFIX exp: <http://example.com/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?continent
+       (COUNT(DISTINCT ?player) AS ?totalPlayers)
+       (ROUND(SUM(?areaKm2)) AS ?totalAreaKm2)
+       (ROUND(SUM(?marketValue) * 100) / 100 AS ?totalMarketValue)
+       (SUM(?goals) AS ?totalGoals)
+       (SUM(?assists) AS ?totalAssists)
+       (ROUND(SUM(?marketValue) / SUM(?areaKm2) * 1000000) / 1000000 AS ?marketValuePerKm2)
+       (ROUND(COUNT(DISTINCT ?player) / SUM(?areaKm2) * 1000000) / 1000000 AS ?playersPerKm2)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:areaKm2 ?areaKm2 .
+  
+  SERVICE <http://localhost:3030/players/sparql> {
+    ?player rdf:type exp:Player ;
+            foaf:name ?playerName ;
+            dbo:nationality ?nat ;
+            exp:goals ?goals ;
+            exp:assists ?assists ;
+            exp:marketValue ?marketValue .
+    
+    ?nat foaf:name ?nationality .
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?nationality)) || 
+         CONTAINS(LCASE(?nationality), LCASE(?countryName)))
+}
+GROUP BY ?continent
+ORDER BY DESC(?totalMarketValue)
+
+
+# ========================================
+# REQUÊTE 4: Joueurs jeunes (<23 ans) des pays à forte croissance
+# Identifie les talents émergents de pays en développement rapide
+# ========================================
+
+PREFIX ex: <http://example.org/population/>
+PREFIX exp: <http://example.com/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?playerName ?nationality ?age ?position ?marketValue 
+       ?goals ?assists ?matches ?team
+       ?growthRate ?worldPercentage ?capital
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:capital ?capital ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+  
+  FILTER(?growthRate > 1.02)
+  
+  SERVICE <http://localhost:3030/players/sparql> {
+    ?player rdf:type exp:Player ;
+            foaf:name ?playerName ;
+            dbo:nationality ?nat ;
+            dbo:team ?teamUri ;
+            schema:age ?age ;
+            schema:roleName ?position ;
+            exp:goals ?goals ;
+            exp:assists ?assists ;
+            exp:matches ?matches ;
+            exp:marketValue ?marketValue .
+    
+    ?nat foaf:name ?nationality .
+    ?teamUri foaf:name ?team .
+    
+    FILTER(?age < 23)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?nationality)) || 
+         CONTAINS(LCASE(?nationality), LCASE(?countryName)))
+}
+ORDER BY DESC(?marketValue)
+LIMIT 15
+
+
+# ========================================
+# REQUÊTE 5: Profil détaillé pays + statistiques joueurs agrégées
+# Vue complète combinant démographie et performance footballistique
+# ========================================
+
+PREFIX ex: <http://example.org/population/>
+PREFIX exp: <http://example.com/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?countryName ?capital ?continent ?isoCode
+       (ROUND(?density * 100) / 100 AS ?populationDensity)
+       (ROUND(?growthRate * 10000) / 10000 AS ?populationGrowthRate)
+       (ROUND(?areaKm2) AS ?territoryArea)
+       (COUNT(DISTINCT ?player) AS ?numberOfTopPlayers)
+       (ROUND(AVG(?age)) AS ?avgPlayerAge)
+       (ROUND(AVG(?marketValue) * 100) / 100 AS ?avgPlayerValue)
+       (ROUND(SUM(?marketValue) * 100) / 100 AS ?totalPlayerValue)
+       (SUM(?goals) AS ?totalGoals)
+       (SUM(?assists) AS ?totalAssists)
+       (ROUND(AVG(?matches)) AS ?avgMatches)
+       (COUNT(DISTINCT ?team) AS ?differentTeams)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:capital ?capital ;
+           schema:continent ?continent ;
+           ex:isoCode ?isoCode ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:areaKm2 ?areaKm2 .
+  
+  FILTER(?continent = "Europe" || ?continent = "Africa" || ?continent = "Asia")
+  
+  SERVICE <http://localhost:3030/players/sparql> {
+    ?player rdf:type exp:Player ;
+            foaf:name ?playerName ;
+            dbo:nationality ?nat ;
+            dbo:team ?teamUri ;
+            schema:age ?age ;
+            exp:goals ?goals ;
+            exp:assists ?assists ;
+            exp:matches ?matches ;
+            exp:marketValue ?marketValue .
+    
+    ?nat foaf:name ?nationality .
+    ?teamUri foaf:name ?team .
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?nationality)) || 
+         CONTAINS(LCASE(?nationality), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?capital ?continent ?isoCode ?density ?growthRate ?areaKm2
+HAVING (COUNT(DISTINCT ?player) > 0)
+ORDER BY DESC(?totalPlayerValue)

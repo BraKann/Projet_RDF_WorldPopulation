@@ -1,0 +1,304 @@
+-- ============================================
+-- REQUÊTES SPARQL FÉDÉRÉES
+-- Exécutées depuis: WorldPopulationDataset
+-- Interroge via SERVICE: athletes
+-- ============================================
+
+-- REQUÊTE 1: Pays avec leurs athlètes et densité de population
+-- Montre quels pays ont des athlètes et leur contexte démographique
+PREFIX sport: <http://purl.org/sport/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?capital ?continent ?density ?growthRate 
+       ?athleteName ?sport
+WHERE {
+  # Données de population (endpoint local)
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              schema:capital ?capital ;
+              schema:continent ?continent ;
+              ex:density ?density ;
+              ex:growthRate ?growthRate .
+  
+  # Récupération des athlètes via SERVICE
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             foaf:name ?athleteName ;
+             dbo:sport ?sport ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+ORDER BY ?country ?athleteName
+LIMIT 50
+
+
+-- REQUÊTE 2: Statistiques d'athlètes par pays avec profil démographique complet
+-- Pour chaque pays ayant des athlètes, affiche toutes ses données démographiques
+PREFIX sport: <http://purl.org/sport/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?capital ?continent ?rank ?areaKm2 ?density ?growthRate ?worldPercentage
+       (COUNT(?athlete) as ?nbAthletes)
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              schema:capital ?capital ;
+              schema:continent ?continent ;
+              ex:rank ?rank ;
+              ex:areaKm2 ?areaKm2 ;
+              ex:density ?density ;
+              ex:growthRate ?growthRate ;
+              ex:worldPercentage ?worldPercentage .
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+GROUP BY ?country ?capital ?continent ?rank ?areaKm2 ?density ?growthRate ?worldPercentage
+ORDER BY DESC(?nbAthletes)
+
+
+-- REQUÊTE 3: Pays à forte densité avec leurs athlètes
+-- Focus sur les pays densément peuplés (>100 hab/km²) ayant des athlètes
+PREFIX sport: <http://purl.org/sport/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?density ?areaKm2 
+       (GROUP_CONCAT(DISTINCT ?athleteName; separator=", ") as ?athletes)
+       (COUNT(DISTINCT ?sport) as ?nbSports)
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              ex:density ?density ;
+              ex:areaKm2 ?areaKm2 .
+  FILTER(?density > 100)
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             foaf:name ?athleteName ;
+             dbo:sport ?sport ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+GROUP BY ?country ?density ?areaKm2
+ORDER BY DESC(?density)
+
+
+-- REQUÊTE 4: Analyse continentale - athlètes et démographie
+-- Agrégation par continent avec statistiques croisées
+PREFIX sport: <http://purl.org/sport/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?continent 
+       (COUNT(DISTINCT ?country) as ?nbCountriesWithAthletes)
+       (COUNT(DISTINCT ?athlete) as ?totalAthletes)
+       (AVG(?density) as ?avgDensity)
+       (AVG(?growthRate) as ?avgGrowthRate)
+       (SUM(?worldPercentage) as ?totalPopPercentage)
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              schema:continent ?continent ;
+              ex:density ?density ;
+              ex:growthRate ?growthRate ;
+              ex:worldPercentage ?worldPercentage .
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+GROUP BY ?continent
+ORDER BY DESC(?totalAthletes)
+
+
+-- REQUÊTE 5: Pays en croissance démographique avec leurs athlètes
+-- Identifie les pays en forte croissance (>1.02) ayant des athlètes olympiques
+PREFIX sport: <http://purl.org/sport/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?growthRate ?worldPercentage ?athleteName ?sport ?birthDate
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              ex:growthRate ?growthRate ;
+              ex:worldPercentage ?worldPercentage .
+  FILTER(?growthRate > 1.02)
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             foaf:name ?athleteName ;
+             dbo:sport ?sport ;
+             dbo:birthDate ?birthDate ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+ORDER BY DESC(?growthRate) ?athleteName
+
+
+-- REQUÊTE 6: Petits pays performants en sport
+-- Pays avec faible % mondial (<0.5%) mais présence olympique
+PREFIX sport: <http://purl.org/sport/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?worldPercentage ?rank ?density
+       (COUNT(DISTINCT ?athlete) as ?nbAthletes)
+       (COUNT(DISTINCT ?sport) as ?nbSports)
+       (GROUP_CONCAT(DISTINCT ?sportName; separator=", ") as ?sports)
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              ex:worldPercentage ?worldPercentage ;
+              ex:rank ?rank ;
+              ex:density ?density .
+  FILTER(?worldPercentage < 0.5)
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             dbo:sport ?sportName ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+GROUP BY ?country ?worldPercentage ?rank ?density
+ORDER BY ?worldPercentage
+
+
+-- REQUÊTE 7: Ratio athlètes/population - Performance relative
+-- Calcule combien d'athlètes par pourcentage de population mondiale
+PREFIX sport: <http://purl.org/sport/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?rank ?worldPercentage 
+       (COUNT(?athlete) as ?nbAthletes)
+       (ROUND(COUNT(?athlete) / ?worldPercentage * 100) / 100 as ?athletesPerPopRatio)
+       ?continent
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              schema:continent ?continent ;
+              ex:rank ?rank ;
+              ex:worldPercentage ?worldPercentage .
+  FILTER(?worldPercentage > 0)
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+GROUP BY ?country ?rank ?worldPercentage ?continent
+ORDER BY DESC(?athletesPerPopRatio)
+
+
+-- REQUÊTE 8: Sports par type de pays (densité)
+-- Compare quels sports sont pratiqués dans pays denses vs peu denses
+PREFIX sport: <http://purl.org/sport/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?sportName
+       (IF(?density > 100, "Haute densité", "Faible densité") as ?densityCategory)
+       (COUNT(?athlete) as ?nbAthletes)
+       (AVG(?density) as ?avgDensity)
+       (GROUP_CONCAT(DISTINCT ?country; separator=", ") as ?countries)
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              ex:density ?density .
+  FILTER(?density > 100 || ?density < 30)
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             dbo:sport ?sportName ;
+             schema:alpha3Code ?isoCode .
+  }
+}
+GROUP BY ?sportName ?densityCategory
+ORDER BY ?sportName ?densityCategory
+
+
+-- REQUÊTE 9: Pays avec athlètes vs pays sans athlètes
+-- Identifie quels pays de votre dataset n'ont PAS d'athlètes
+PREFIX sport: <http://purl.org/sport/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?continent ?rank ?worldPercentage
+       (COUNT(?athlete) as ?nbAthletes)
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode ?isoCode ;
+              schema:name ?country ;
+              schema:continent ?continent ;
+              ex:rank ?rank ;
+              ex:worldPercentage ?worldPercentage .
+  
+  OPTIONAL {
+    SERVICE <http://localhost:3030/athletes/sparql> {
+      ?athlete a sport:Athlete ;
+               schema:alpha3Code ?isoCode .
+    }
+  }
+}
+GROUP BY ?country ?continent ?rank ?worldPercentage
+HAVING (COUNT(?athlete) = 0)
+ORDER BY ?rank
+
+
+-- REQUÊTE 10: Profil détaillé d'un pays spécifique (exemple: Arménie)
+-- Toutes les infos démographiques + liste complète des athlètes
+PREFIX sport: <http://purl.org/sport/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?capital ?continent ?rank ?areaKm2 ?density ?growthRate ?worldPercentage
+       ?athleteName ?sport ?gender ?birthDate ?event
+WHERE {
+  ?countryPop a ex:Country ;
+              ex:isoCode "ARM" ;  # Changez le code pays selon besoin
+              schema:name ?country ;
+              schema:capital ?capital ;
+              schema:continent ?continent ;
+              ex:rank ?rank ;
+              ex:areaKm2 ?areaKm2 ;
+              ex:density ?density ;
+              ex:growthRate ?growthRate ;
+              ex:worldPercentage ?worldPercentage .
+  
+  SERVICE <http://localhost:3030/athletes/sparql> {
+    ?athlete a sport:Athlete ;
+             foaf:name ?athleteName ;
+             dbo:sport ?sport ;
+             dbo:gender ?gender ;
+             dbo:birthDate ?birthDate ;
+             sport:participatesIn ?event ;
+             schema:alpha3Code "ARM" .
+  }
+}
+ORDER BY ?athleteName
