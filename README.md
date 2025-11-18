@@ -88,7 +88,7 @@ Il vous suffit ensuite d'executer la commande fuseki avec config=[path vers le f
 Pour réaliser la liaison de notre dataset au Web de données liées, nous avons enrichi notre modèle avec deux types de liens externes : le owl:sameAs et le skos:exactMatch
 
 ### 8. Déscription VOID
-![Image du Graphe](./screen/void.png)
+![Image du Graphe](./screen/void_description.png)
 
 ---
 ## Réalisation du projet
