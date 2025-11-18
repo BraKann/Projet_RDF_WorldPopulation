@@ -1,8 +1,0 @@
-SELECT DISTINCT ?resource ?external
-WHERE {
-    ?resource ?p ?external .
-    FILTER(isIRI(?external))
-    FILTER(
-        STRSTARTS(STR(?external), "http://dbpedia.org") 
-    )
-}

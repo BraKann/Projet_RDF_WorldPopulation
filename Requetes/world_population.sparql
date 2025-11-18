@@ -1,0 +1,64 @@
+//Affiche les pays de superficie > 300 000 km² qui ont un taux de croissance < 1
+PREFIX schema: <http://schema.org/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?country ?area 
+WHERE {
+  ?s rdfs:label ?country ;
+     dbo:areaTotal ?area ;
+     schema:growthRate ?gr ;
+  	 dbo:populationTotal ?pop .
+  FILTER (?gr < 1 && ?area > 300000)
+}
+ORDER BY (?pop)
+LIMIT 10
+
+//Nom des pays commençant par la lettre A trier par leur taux de densité de la population.
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?country ?popDensity
+WHERE {
+  ?s rdfs:label ?country ;
+     dbo:populationDensity ?popDensity ;
+  FILTER (regex(?country,"^A"))
+}
+ORDER BY (?popDensity)
+LIMIT 10
+
+
+//--------------------------------------------------------------------------------------------------
+
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?country ?capital
+WHERE {
+  ?s rdfs:label ?country ;
+     dbo:capital ?capital .
+}
+
+//plus cool
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?country ?capital ?pop
+WHERE {
+  ?s rdfs:label ?country ;
+     dbo:capital ?capital ;
+  	 dbo:populationTotal ?pop .
+}
+ORDER BY (?pop)
+LIMIT 10
+
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?country (MAX(?population) AS ?maxPopulation)
+WHERE {
+  ?s rdfs:label ?country ;
+     dbo:populationTotal ?population .
+}
+GROUP BY ?country
+ORDER BY DESC(?maxPopulation)
