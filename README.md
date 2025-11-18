@@ -64,7 +64,7 @@ Fuseki est un serveur pour publier et interroger des données RDF avec SPARQL.
 
 Le jeu de données **World Population Dataset** peut être téléchargé depuis Kaggle :
 [https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset](https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset)
-![Image du Graphe](./screen/dataSetEx.png)
+![DATA](./screen/dataSetEx.png)
 
 ### 4. Présentation des données
 
@@ -86,10 +86,10 @@ Il vous suffit ensuite d'executer la commande fuseki avec config=[path vers le f
 
 ### 7. Liaison au Cloud Linked Data
 Pour réaliser la liaison de notre dataset au Web de données liées, nous avons enrichi notre modèle avec deux types de liens externes : le owl:sameAs et le skos:exactMatch
-![Image du Graphe](./screen/test_link_CLD.png)
+![RQCLD](./screen/test_link_CLD.png)
 
 ### 8. Déscription VOID
-![Image du Graphe](./screen/void_description.png)
+![VOID](./screen/void_description.png)
 
 ---
 ## Réalisation du projet
