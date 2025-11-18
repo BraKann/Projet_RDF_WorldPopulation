@@ -1,0 +1,20 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+
+SELECT ?countryLabel ?population 
+(COUNT(?nobel) AS ?nobelCount) 
+((COUNT(?nobel) / ?population) * 1000000 AS ?nobelPerMillion)
+WHERE {
+  ?s rdfs:label ?countryLabel ;
+     dbo:populationTotal ?population .
+
+  SERVICE <https://api.triplydb.com/datasets/Ijjaziad/laureate-nobel/sparql> {
+    ?nobel schema:birthPlace/rdfs:label ?countryName .
+  }
+  
+  FILTER(STR(?countryLabel) = STR(?countryName))
+}
+GROUP BY ?countryLabel ?population
+ORDER BY DESC(?nobelPerMillion)
+LIMIT 15

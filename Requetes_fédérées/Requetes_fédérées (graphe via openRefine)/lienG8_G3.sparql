@@ -1,0 +1,30 @@
+SELECT ?countryLabel ?continentLabel (COUNT(DISTINCT ?joAthlete) AS ?nbNBAPlayers) 
+WHERE { 
+  ?country rdf:type dbo:Country ;
+           rdfs:label ?countryLabel ;
+           dbo:isoCode ?isocode ;
+       dbo:continent ?continent.
+  ?continent rdfs:label ?continentLabel.
+  ?isocode rdfs:label ?isocodeLabel .
+  SERVICE <http://localhost:3030/jo> {
+      ?joAthlete a sport:Athlete ;
+                 dbo:sport dbr:Basketball ;
+                 foaf:name ?joName ;
+                 schema:alpha3Code ?isocodeLabel .
+  }
+  BIND(STR(?joName) AS ?rawName)
+  BIND(STRBEFORE(?rawName, " ") AS ?lastName)
+  BIND(STRAFTER(?rawName, " ") AS ?firstName)
+  BIND(LCASE(CONCAT(?firstName, " ", ?lastName)) AS ?joNormalized)
+  SERVICE <http://localhost:3030/nba> {
+      ?nbaPlayer dcterms:temporal ?seasonData .
+      ?seasonData dbo:league dbr:National_Basketball_Association ;
+                  dbo:season "2022-23" .
+      ?nbaPlayer gn:name ?nbaPlayerName .
+  }
+  BIND(LCASE(STR(?nbaPlayerName)) AS ?nbaNormalized)
+  FILTER(?joNormalized = ?nbaNormalized)
+  FILTER(?continentLabel != "North America")
+} 
+GROUP BY ?countryLabel ?continentLabel
+ORDER BY ?countryLabel
