@@ -1,0 +1,286 @@
+# ============================================
+# REQUÊTES SPARQL  - POPULATION MONDIALE
+# ============================================
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# ============================================
+# 1. TOP 10 des pays les plus peuplés avec analyse démographique complète
+# ============================================
+SELECT ?rank ?name ?capital ?continent 
+       ?density ?growthRate ?worldPercentage
+       (xsd:decimal(?worldPercentage) * 7700000000 AS ?estimatedPopulation)
+WHERE {
+  ?country rdf:type ex:Country ;
+           ex:rank ?rank ;
+           schema:name ?name ;
+           schema:capital ?capital ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+  FILTER(?rank <= 10)
+}
+ORDER BY ?rank
+
+
+# ============================================
+# 2. Analyse par continent : Statistiques agrégées
+# ============================================
+SELECT ?continent 
+       (COUNT(?country) AS ?numberOfCountries)
+       (AVG(xsd:decimal(?density)) AS ?avgDensity)
+       (MAX(xsd:decimal(?density)) AS ?maxDensity)
+       (AVG(xsd:decimal(?growthRate)) AS ?avgGrowthRate)
+       (SUM(xsd:decimal(?worldPercentage)) AS ?totalWorldPercentage)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+}
+GROUP BY ?continent
+ORDER BY DESC(?totalWorldPercentage)
+
+
+# ====================================================
+# 3. Pays à forte croissance démographique
+# Critère : growthRate > 1.025
+# ====================================================
+SELECT ?name ?continent ?growthRate ?density
+       ((?growthRate - 1) * 100 AS ?percentageGrowth)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:continent ?continent ;
+           ex:growthRate ?growthRate ;
+           ex:density ?density .
+  FILTER(?growthRate > 1.025)
+}
+ORDER BY DESC(?growthRate)
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# ==========================================================
+# Pays en décroissance démographique (Growth Rate < 1)
+# ==========================================================
+SELECT ?name ?continent ?capital ?growthRate
+       ((1 - ?growthRate) * 100 AS ?percentageDecline)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:continent ?continent ;
+           schema:capital ?capital ;
+           ex:growthRate ?growthRate .
+  FILTER(?growthRate < 1)
+}
+ORDER BY ?growthRate
+
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# ============================================
+# 5. Densité extrême : Pays ultra-denses vs pays peu denses
+# ============================================
+SELECT ?name ?continent ?density ?areaKm2
+       (CONCAT(STR(?density), " hab/km²") AS ?densityLabel)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:areaKm2 ?areaKm2 .
+  FILTER(?density > 1000 || ?density < 10)
+}
+ORDER BY DESC(?density)
+
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# ============================================
+# 5. Densité extrême : Top 5 ultra-denses + Top 5 peu denses
+# ============================================
+SELECT ?name ?continent ?density ?areaKm2 ?densityLabel ?category
+WHERE {
+  {
+    # Top 5 pays ultra-denses (densité > 1000)
+    SELECT ?name ?continent ?density ?areaKm2 ("Ultra-dense" AS ?category)
+    WHERE {
+      ?country rdf:type ex:Country ;
+               schema:name ?name ;
+               schema:continent ?continent ;
+               ex:density ?density ;
+               ex:areaKm2 ?areaKm2 .
+      FILTER(?density > 1000)
+    }
+    ORDER BY DESC(?density)
+    LIMIT 5
+  }
+  UNION
+  {
+    # Top 5 pays peu denses (densité < 10)
+    SELECT ?name ?continent ?density ?areaKm2 ("Very sparse" AS ?category)
+    WHERE {
+      ?country rdf:type ex:Country ;
+               schema:name ?name ;
+               schema:continent ?continent ;
+               ex:density ?density ;
+               ex:areaKm2 ?areaKm2 .
+      FILTER(?density < 10)
+    }
+    ORDER BY ?density
+    LIMIT 5
+  }
+  
+  BIND(CONCAT(STR(?density), " hab/km²") AS ?densityLabel)
+}
+ORDER BY ?category DESC(?density)
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# =============================================================================================
+# 6. Analyse des pays européens  : Comparaison détaillée
+# Quels sont les pays européens en croissance ou en écroissance démographique ?=============================================================================================
+SELECT ?name ?capital ?density ?growthRate ?worldPercentage
+       (IF(?growthRate > 1, "Croissance", "Décroissance") AS ?trend)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:capital ?capital ;
+           schema:continent "Europe" ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+}
+ORDER BY DESC(?worldPercentage)
+
+# ============================================
+# 7. Les "géants" : Pays > 1% de la population mondiale
+# ============================================
+
+
+# ============================================
+# 8. Analyse Afrique : Potentiel démographique
+# Quels sont les pays d’Afrique dont le taux de croissance dépasse 1,0
+# ============================================
+SELECT ?name ?capital ?growthRate ?density ?worldPercentage
+       ((?growthRate - 1) * 100 AS ?annualGrowthPercent)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:capital ?capital ;
+           schema:continent "Africa" ;
+           ex:growthRate ?growthRate ;
+           ex:density ?density ;
+           ex:worldPercentage ?worldPercentage .
+  FILTER(?growthRate > 1.02)
+}
+ORDER BY DESC(?growthRate)
+
+# ============================================
+# 9. Classement par densité : Les 15 pays les plus et moins denses
+# ============================================
+SELECT ?name ?continent ?density ?areaKm2
+       (ROUND(?density) AS ?densityRounded)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:areaKm2 ?areaKm2 .
+}
+ORDER BY DESC(?density)
+LIMIT 15
+
+# ============================================
+# 10. Petits territoires à forte densité (< 1000 km²)
+# ============================================
+SELECT ?name ?continent ?areaKm2 ?density
+       (xsd:decimal(?density) * xsd:decimal(?areaKm2) AS ?estimatedPopulation)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:continent ?continent ;
+           ex:areaKm2 ?areaKm2 ;
+           ex:density ?density .
+  FILTER(xsd:decimal(?areaKm2) < 1000)
+}
+ORDER BY DESC(?density)
+
+# ============================================
+# 11. Analyse comparative : Asie vs Europe vs Afrique
+# ============================================
+SELECT ?continent 
+       (COUNT(?country) AS ?totalCountries)
+       (AVG(?density) AS ?avgDensity)
+       (AVG(?growthRate) AS ?avgGrowthRate)
+       (SUM(xsd:decimal(?worldPercentage)) AS ?continentPopulationShare)
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+  FILTER(?continent IN ("Asia", "Europe", "Africa"))
+}
+GROUP BY ?continent
+ORDER BY DESC(?continentPopulationShare)
+
+# ============================================
+# 12. Top 5 des capitales des pays les plus peuplés
+# ============================================
+SELECT ?capital ?countryName ?rank ?worldPercentage
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:capital ?capital ;
+           schema:name ?countryName ;
+           ex:rank ?rank ;
+           ex:worldPercentage ?worldPercentage .
+  FILTER(?rank <= 5)
+}
+ORDER BY ?rank
+
+# ============================================
+# 13. Top 5 des capitales des pays les plus peuplés
+# ============================================
+SELECT ?capital ?countryName ?rank ?worldPercentage
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:capital ?capital ;
+           schema:name ?countryName ;
+           ex:rank ?rank ;
+           ex:worldPercentage ?worldPercentage .
+  FILTER(?rank <= 5)
+}
+ORDER BY ?rank

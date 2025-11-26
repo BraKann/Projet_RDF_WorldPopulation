@@ -1,0 +1,24 @@
+@prefix void: <http://rdfs.org/ns/void#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:WorldPopulation a void:Dataset ;
+    dcterms:title "WorldPopulation" ;
+    dcterms:description "Évolution de la population de tout les pays de 1970 a 2022" ;
+    dcterms:source "https://www.kaggle.com/datasets/iamsouravbanerjee/world-population-dataset" ;
+
+    void:feature "http://www.w3.org/ns/formats/Turtle" ;
+
+    void:triples "737"^^xsd:int ;
+    void:entities "18"^^xsd:int ;
+    void:classes "18"^^xsd:int ;
+    void:properties "537"^^xsd:int .
+
+    void:vocabulary <http://dbpedia.org/ontology/> ;
+    void:vocabulary <http://example.com/> ;
+    void:vocabulary <http://www.w3.org/2002/07/owl#> ;
+    void:vocabulary <http://www.w3.org/2004/02/skos/core#> ;
+    void:vocabulary <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ;
+    void:vocabulary <http://www.w3.org/2000/01/rdf-schema#> ;
+    void:vocabulary <http://www.w3.org/2001/XMLSchema#> ;
+

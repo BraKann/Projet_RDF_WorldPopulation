@@ -1,0 +1,292 @@
+# ========================================================================    Cheikh Tidiane
+
+# REQUÊTES FÉDÉRÉES SPARQL - POPULATION MONDIALE & PRIX NOBEL
+# Endpoint Local: http://localhost:3030/WorldPopulationDataset/sparql
+# Endpoint Distant: http://localhost:3030/nobelprize/sparql
+# ========================================================================
+
+# ========================================================================
+# REQUÊTE 1: Pays avec leurs lauréats Nobel et densité de population
+# ========================================================================
+# Liste les pays avec leur densité et le nombre de lauréats Nobel
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?countryName ?capital ?density 
+       (COUNT(DISTINCT ?award) AS ?nobelCount)
+       (GROUP_CONCAT(DISTINCT ?laureate; separator=", ") AS ?laureates)
+WHERE {
+  # Données locales: informations sur les pays
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:capital ?capital ;
+           ex:density ?density .
+  
+  # Données distantes: lauréats Nobel
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://xmlns.com/foaf/0.1/givenName> ?givenName ;
+            <http://xmlns.com/foaf/0.1/familyName> ?familyName ;
+            <http://schema.org/birthPlace> ?place .
+    
+    # Extraire le nom du pays depuis l'URI du lieu
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+    
+    # Formater le nom complet du lauréat
+    BIND(CONCAT(?givenName, " ", ?familyName) AS ?laureate)
+  }
+  
+  # Faire correspondre les noms de pays
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?capital ?density
+ORDER BY DESC(?nobelCount)
+
+
+# ========================================================================
+# REQUÊTE 2: Prix Nobel de Physique par pays avec démographie
+# ========================================================================
+# Analyse des pays ayant des lauréats Nobel en Physique
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?countryName ?density ?growthRate ?worldPercentage 
+       (COUNT(DISTINCT ?award) AS ?physicsNobelCount)
+       (GROUP_CONCAT(DISTINCT ?laureate; separator=", ") AS ?physicsLaureates)
+WHERE {
+  # Données locales
+  ?country schema:name ?countryName ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+  
+  # Données distantes: Nobel de Physique
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/category> "Physics" ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://xmlns.com/foaf/0.1/givenName> ?givenName ;
+            <http://xmlns.com/foaf/0.1/familyName> ?familyName ;
+            <http://schema.org/birthPlace> ?place .
+    
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+    BIND(CONCAT(?givenName, " ", ?familyName) AS ?laureate)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?density ?growthRate ?worldPercentage
+ORDER BY DESC(?physicsNobelCount)
+
+
+# ========================================================================
+# REQUÊTE 3: Analyse par continent et catégorie Nobel
+# ========================================================================
+# Statistiques démographiques et Nobel par continent
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?continent 
+       (COUNT(DISTINCT ?award) AS ?totalNobels)
+       (AVG(?density) AS ?avgDensity)
+       (AVG(?growthRate) AS ?avgGrowthRate)
+       (SUM(?worldPercentage) AS ?continentPopulationPercent)
+       (GROUP_CONCAT(DISTINCT ?category; separator=", ") AS ?categories)
+WHERE {
+  # Données locales: statistiques par continent
+  ?country schema:continent ?continent ;
+           schema:name ?countryName ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+  
+  # Données distantes: tous les prix Nobel
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/category> ?category ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://schema.org/birthPlace> ?place .
+    
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?continent
+ORDER BY DESC(?totalNobels)
+
+
+# ========================================================================
+# REQUÊTE 4: Prix Nobel récents (2000+) avec croissance démographique
+# ========================================================================
+# Nobel du 21e siècle corrélés avec la croissance des pays
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?countryName ?capital ?growthRate ?areaKm2
+       (COUNT(DISTINCT ?award) AS ?nobels21stCentury)
+       (GROUP_CONCAT(DISTINCT ?categoryYear; separator=" | ") AS ?awards)
+WHERE {
+  # Données locales
+  ?country schema:name ?countryName ;
+           schema:capital ?capital ;
+           ex:growthRate ?growthRate ;
+           ex:areaKm2 ?areaKm2 .
+  
+  # Données distantes: Nobel depuis 2000
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/awardDate> ?year ;
+           <http://schema.org/category> ?category ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://xmlns.com/foaf/0.1/givenName> ?givenName ;
+            <http://xmlns.com/foaf/0.1/familyName> ?familyName ;
+            <http://schema.org/birthPlace> ?place .
+    
+    FILTER(xsd:integer(?year) >= 2000)
+    
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+    BIND(CONCAT(?category, " (", STR(?year), ")") AS ?categoryYear)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?capital ?growthRate ?areaKm2
+HAVING (COUNT(DISTINCT ?award) > 0)
+ORDER BY DESC(?nobels21stCentury)
+
+
+# ========================================================================
+# REQUÊTE 5: Pays à forte densité avec lauréats Nobel
+# ========================================================================
+# Pays densément peuplés (>100 hab/km²) et leurs prix Nobel
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?countryName ?density ?areaKm2
+       (COUNT(DISTINCT ?award) AS ?nobelCount)
+       (GROUP_CONCAT(DISTINCT ?laureateCategory; separator=" | ") AS ?nobelDetails)
+WHERE {
+  # Données locales: pays à forte densité
+  ?country schema:name ?countryName ;
+           ex:density ?density ;
+           ex:areaKm2 ?areaKm2 .
+  
+  FILTER(?density > 100)
+  
+  # Données distantes: compter les Nobel
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/category> ?category ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://xmlns.com/foaf/0.1/givenName> ?givenName ;
+            <http://xmlns.com/foaf/0.1/familyName> ?familyName ;
+            <http://schema.org/birthPlace> ?place .
+    
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+    BIND(CONCAT(?givenName, " ", ?familyName, " (", ?category, ")") AS ?laureateCategory)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?density ?areaKm2
+ORDER BY DESC(?density)
+
+
+# ========================================================================
+# REQUÊTE 6 BONUS: Analyse multi-catégories avec genre des lauréats
+# ========================================================================
+# Requête complexe : Nobel par catégorie ET par genre
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?countryName ?continent ?capital ?density
+       (COUNT(DISTINCT ?award) AS ?totalNobels)
+       (SUM(IF(?category = "Physics", 1, 0)) AS ?physicsCount)
+       (SUM(IF(?category = "Chemistry", 1, 0)) AS ?chemistryCount)
+       (SUM(IF(?category = "Medicine", 1, 0)) AS ?medicineCount)
+       (SUM(IF(?category = "Literature", 1, 0)) AS ?literatureCount)
+       (SUM(IF(?category = "Peace", 1, 0)) AS ?peaceCount)
+       (SUM(IF(?gender = "female", 1, 0)) AS ?womenCount)
+       (SUM(IF(?gender = "male", 1, 0)) AS ?menCount)
+WHERE {
+  # Données locales
+  ?country schema:name ?countryName ;
+           schema:continent ?continent ;
+           schema:capital ?capital ;
+           ex:density ?density .
+  
+  # Données distantes: tous les prix Nobel avec détails
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/category> ?category ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://schema.org/birthPlace> ?place ;
+            <http://schema.org/gender> ?gender .
+    
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?continent ?capital ?density
+HAVING (COUNT(DISTINCT ?award) > 0)
+ORDER BY DESC(?totalNobels)
+
+
+# ========================================================================
+# REQUÊTE 7: Top 10 des pays - Efficacité scientifique
+# ========================================================================
+# Ratio Prix Nobel / Millions d'habitants (nécessite calcul de population)
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?countryName ?density ?areaKm2
+       (COUNT(DISTINCT ?award) AS ?nobelCount)
+       (?density * ?areaKm2 / 1000000 AS ?estimatedPopulationMillions)
+       (COUNT(DISTINCT ?award) / (?density * ?areaKm2 / 1000000) AS ?nobelsPerMillionInhabitants)
+WHERE {
+  ?country schema:name ?countryName ;
+           ex:density ?density ;
+           ex:areaKm2 ?areaKm2 .
+  
+  FILTER(?density > 0 && ?areaKm2 > 0)
+  
+  SERVICE <http://localhost:3030/nobelprize/sparql> {
+    ?award a <http://schema.org/Award> ;
+           <http://schema.org/recipient> ?person .
+    ?person <http://schema.org/birthPlace> ?place .
+    
+    BIND(REPLACE(STR(?place), ".*_([^_]+)$", "$1") AS ?countryFromPlace)
+  }
+  
+  FILTER(CONTAINS(LCASE(?countryName), LCASE(?countryFromPlace)) || 
+         CONTAINS(LCASE(?countryFromPlace), LCASE(?countryName)))
+}
+GROUP BY ?countryName ?density ?areaKm2
+HAVING (COUNT(DISTINCT ?award) > 0)
+ORDER BY DESC(?nobelsPerMillionInhabitants)
+LIMIT 10
+

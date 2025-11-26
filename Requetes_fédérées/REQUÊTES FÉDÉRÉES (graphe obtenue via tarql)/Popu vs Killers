@@ -1,0 +1,298 @@
+# ========================================
+# REQUÊTES FÉDÉRÉES SPARQL  _ Cheikh Tidiane
+# Dataset Local: WorldPopulationDataset
+# Dataset Distant: Killers
+# ========================================
+
+PREFIX ex: <http://example.org/population/>
+PREFIX crime: <http://example.org/crime/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+# ========================================
+# REQUÊTE 1: Tueurs en série par pays avec données démographiques
+# Croise les criminels avec les statistiques de leurs pays d'origine
+# ========================================
+
+SELECT ?criminalName ?birthPlace ?countryName ?continent ?population ?density ?growthRate
+WHERE {
+  # Données distantes: informations sur les criminels
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  # Données locales: informations démographiques
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate .
+  
+  # Filtrage: chercher les pays mentionnés dans le lieu de naissance
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+}
+ORDER BY DESC(?density)
+
+
+# ========================================
+# REQUÊTE 2: Distribution continentale des tueurs en série
+# Analyse géographique: nombre de criminels par continent
+# ========================================
+
+SELECT ?continent (COUNT(DISTINCT ?criminal) AS ?numberOfCriminals) 
+       (AVG(?density) AS ?avgPopDensity)
+       (AVG(?growthRate) AS ?avgGrowthRate)
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+}
+GROUP BY ?continent
+ORDER BY DESC(?numberOfCriminals)
+
+
+# ========================================
+# REQUÊTE 3: Criminels capturés dans les années actives avec contexte géographique
+# Timeline des arrestations avec informations démographiques
+# ========================================
+
+SELECT ?criminalName ?nickname ?apprehended ?countryName ?continent 
+       ?capital ?areaKm2 ?worldPercentage
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              foaf:nick ?nickname ;
+              crime:dateApprehended ?apprehended ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           schema:capital ?capital ;
+           ex:areaKm2 ?areaKm2 ;
+           ex:worldPercentage ?worldPercentage .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+  FILTER(YEAR(?apprehended) >= 1980)
+}
+ORDER BY ?apprehended
+
+
+# ========================================
+# REQUÊTE 4: Profil criminel avec contexte démographique complet
+# Vue détaillée: criminels avec toutes les données de leur pays
+# ========================================
+
+SELECT ?criminalName ?age ?birthDate ?deathDate ?conviction ?penalty
+       ?countryName ?continent ?capital ?rank ?density ?isoCode
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              schema:birthPlace ?birthPlace .
+    
+    OPTIONAL { ?criminal foaf:age ?age }
+    OPTIONAL { ?criminal schema:birthDate ?birthDate }
+    OPTIONAL { ?criminal schema:deathDate ?deathDate }
+    OPTIONAL { ?criminal crime:conviction ?conviction }
+    OPTIONAL { ?criminal crime:penalty ?penalty }
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           schema:capital ?capital ;
+           ex:rank ?rank ;
+           ex:density ?density ;
+           ex:isoCode ?isoCode .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+}
+ORDER BY ?rank
+
+
+# ========================================
+# REQUÊTE 5: Analyse temporelle - Criminels par décennie et densité de population
+# Corrélation entre période d'activité et contexte démographique
+# ========================================
+
+SELECT ?decade ?continent (COUNT(?criminal) AS ?criminalCount) 
+       (AVG(?density) AS ?avgDensity) (AVG(?worldPercentage) AS ?avgWorldPct)
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              crime:dateApprehended ?apprehended ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:worldPercentage ?worldPercentage .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+  
+  BIND(FLOOR(YEAR(?apprehended) / 10) * 10 AS ?decade)
+}
+GROUP BY ?decade ?continent
+ORDER BY ?decade ?continent
+
+
+# ========================================
+# REQUÊTE 6: Pays à haute densité avec présence criminelle
+# Identification des pays denses ayant des criminels répertoriés
+# ========================================
+
+SELECT ?countryName ?continent ?density ?areaKm2 ?growthRate
+       (COUNT(DISTINCT ?criminal) AS ?criminalCount)
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:areaKm2 ?areaKm2 ;
+           ex:growthRate ?growthRate .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+  FILTER(?density > 100)
+}
+GROUP BY ?countryName ?continent ?density ?areaKm2 ?growthRate
+ORDER BY DESC(?density)
+
+
+# ========================================
+# REQUÊTE 7: Criminels vivants vs décédés avec statistiques pays
+# Statut vital des criminels avec contexte géographique
+# ========================================
+
+SELECT ?criminalName ?birthDate ?deathDate 
+       (IF(BOUND(?deathDate), "Décédé", "Vivant") AS ?status)
+       ?countryName ?continent ?worldPercentage
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              schema:birthDate ?birthDate ;
+              schema:birthPlace ?birthPlace .
+    
+    OPTIONAL { ?criminal schema:deathDate ?deathDate }
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:worldPercentage ?worldPercentage .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+}
+ORDER BY ?status ?birthDate
+
+
+# ========================================
+# REQUÊTE 8: Comparaison entre continents - Criminels et démographie
+# Vue agrégée multi-dimensionnelle
+# ========================================
+
+SELECT ?continent 
+       (COUNT(DISTINCT ?criminal) AS ?totalCriminals)
+       (COUNT(DISTINCT ?country) AS ?countriesRepresented)
+       (AVG(?density) AS ?avgDensity)
+       (SUM(?worldPercentage) AS ?totalWorldPct)
+       (AVG(?growthRate) AS ?avgGrowth)
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density ;
+           ex:worldPercentage ?worldPercentage ;
+           ex:growthRate ?growthRate .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+}
+GROUP BY ?continent
+ORDER BY DESC(?totalCriminals)
+
+
+# ========================================
+# REQUÊTE 9: Criminels avec surnoms et profil démographique détaillé
+# Analyse culturelle avec contexte géographique
+# ========================================
+
+SELECT ?criminalName ?nickname ?birthPlace ?countryName 
+       ?capital ?continent ?isoCode ?rank ?density
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              foaf:name ?criminalName ;
+              foaf:nick ?nickname ;
+              schema:birthPlace ?birthPlace .
+    
+    FILTER(STRLEN(?nickname) > 10)
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:capital ?capital ;
+           schema:continent ?continent ;
+           ex:isoCode ?isoCode ;
+           ex:rank ?rank ;
+           ex:density ?density .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+}
+ORDER BY ?countryName
+
+
+# ========================================
+# REQUÊTE 10: Analyse des condamnations par zone géographique
+# Corrélation entre types de condamnations et régions
+# ========================================
+
+SELECT ?continent ?conviction (COUNT(?criminal) AS ?convictionCount)
+       (AVG(?density) AS ?avgDensity)
+WHERE {
+  SERVICE <http://localhost:3030/killers/sparql> {
+    ?criminal rdf:type dbo:Criminal ;
+              crime:conviction ?conviction ;
+              schema:birthPlace ?birthPlace .
+  }
+  
+  ?country rdf:type ex:Country ;
+           schema:name ?countryName ;
+           schema:continent ?continent ;
+           ex:density ?density .
+  
+  FILTER(CONTAINS(LCASE(?birthPlace), LCASE(?countryName)))
+  FILTER(BOUND(?conviction))
+}
+GROUP BY ?continent ?conviction
+ORDER BY ?continent DESC(?convictionCount)
