@@ -1,0 +1,65 @@
+1°) Quels sont les athlètes (et le sport qu’ils pratiquent) pour chaque pays, avec les informations démographiques de ce pays — à savoir sa capitale, son continent, sa densité de population et son taux de croissance ?
+
+2°) Quels sont les pays à forte densité de population (plus de 100 habitants par km²), avec leurs athlètes associés, la superficie du pays, et le nombre de sports différents pratiqués par ces athlètes ?
+
+3°) Quels sont les pays ayant une forte croissance démographique (taux de croissance supérieur à 1,02), leur part de la population mondiale, et quels athlètes olympiques (avec leur sport et leur date de naissance) sont associés à ces pays ?
+
+🔹 Niveau 1 – Requêtes de base / descriptives
+
+Ces requêtes servent surtout à explorer les données, sans analyses poussées.
+
+11) Requête 11 — Lister les pays avec leur capitale et continent
+→ Simple, utile pour tester que le graphe est bien structuré.
+💡 Intérêt : Basique.
+
+1) Requête 1 — Pays avec leurs athlètes et densité de population
+→ Montre la jointure population ↔ athlètes.
+💡 Intérêt : introductif, parfait pour tester le lien entre endpoints.
+
+2) Requête 2 — Filtrée sur la France et le Basketball
+→ Exemple ciblé d’une requête thématique.
+💡 Intérêt : faible, car limitée à un cas particulier.
+
+🔹 Niveau 2 – Requêtes intermédiaires (contextualisation)
+
+On commence à faire des croisements ou des filtrages intéressants.
+
+4) Requête 3 — Pays à forte densité avec leurs athlètes
+→ Très visuelle : on obtient les pays « surpeuplés » avec leur diversité sportive.
+💡 Intérêt : moyen, montre une dimension sociale/sportive.
+
+6) Requête 5 — Pays à forte croissance démographique (>1.02)
+→ Fait le lien entre démographie dynamique et sport.
+💡 Intérêt : bon – on ajoute une analyse démographique pertinente.
+
+10) Requête 9 — Pays sans athlètes
+→ Très utile pour vérifier la couverture des données.
+💡 Intérêt : bon, diagnostic de complétude du dataset.
+
+🔹 Niveau 3 – Requêtes analytiques / comparatives
+
+Celles-ci dégagent des tendances globales et des ratios utiles.
+
+3) Requête 2 — Statistiques d’athlètes par pays avec profil démographique
+→ Agrégation complète, permet des classements.
+💡 Intérêt : élevé – vision quantitative solide.
+
+5) Requête 4 — Analyse continentale – athlètes et démographie
+→ Vision macroscopique : compare continents sur densité, croissance, etc.
+💡 Intérêt : très élevé – synthèse agrégée puissante.
+
+8) Requête 7 — Ratio athlètes/population mondiale
+→ Mesure de « performance relative » des pays.
+💡 Intérêt : très élevé – insight pertinent sur la représentativité sportive.
+
+🔹 Niveau 4 – Requêtes ciblées / à forte valeur explicative
+
+Elles combinent plusieurs niveaux d’analyse ou fournissent des profils complets.
+
+12) Requête 10 — Profil complet d’un pays (ex: Sénégal)
+→ Donne la vue la plus riche : démographie + athlètes + sports + événements.
+💡 Intérêt : excellent – tableau complet, très utile pour une étude de cas.
+
+7) Requête 6 — Petits pays performants en sport (même si non entièrement écrite)
+→ Concept fort : performance relative des petits pays.
+💡 Intérêt : très élevé – angle géopolitique et sportif intéressant.

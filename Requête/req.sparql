@@ -1,0 +1,101 @@
+// 1. Liste de tous les pays avec leur capitale et continent
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+
+SELECT ?country ?capital ?continent
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:capital ?capital ;
+           schema:continent ?continent .
+}
+LIMIT 100
+
+
+// 2. Trouver les pays d’Afrique avec une densité supérieure à 100 habitants/km²
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?country ?density ?country
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:continent "Africa" ;
+           ex:density ?density .
+  FILTER(xsd:decimal(?density) > 100)
+}
+ORDER BY DESC(?density)
+
+// 3. Trouver les pays d’Afrique avec une densité supérieure à 100 habitants/km²
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?country ?continent ?density
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:continent ?continent ;
+           ex:density ?density .
+  FILTER(xsd:decimal(?density) > 100)
+}
+ORDER BY DESC(?density)
+
+
+// 4.Trouver le pays ayant la plus forte croissance démographique
+
+
+1. Requête SPARQL de base pour tout extraire (triples)
+
+Cela te donne tous les triples RDF (sujet - prédicat - objet), c’est la base d’un graphe de connaissances :
+
+SELECT ?s ?p ?o
+WHERE {
+  ?s ?p ?o .
+}
+
+2. Requête structurée pour un graphe de connaissance (par pays)
+
+Si tu veux un graphe structuré montrant chaque pays avec ses propriétés, tu peux écrire quelque chose
+
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/population/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?country ?name ?capital ?continent ?isoCode ?rank ?area ?density ?growthRate ?worldPercentage
+WHERE {
+  ?country rdf:type ex:Country ;
+           schema:name ?name ;
+           schema:capital ?capital ;
+           schema:continent ?continent ;
+           ex:isoCode ?isoCode ;
+           ex:rank ?rank ;
+           ex:areaKm2 ?area ;
+           ex:density ?density ;
+           ex:growthRate ?growthRate ;
+           ex:worldPercentage ?worldPercentage .
+}
+ORDER BY ?rank
+
+Tu veux aller plus loin ?
+
+Si tu veux aussi relier des entités entre elles (ex : les pays d’un même continent), on peut enrichir ton graphe avec des relations entité-entité, pas seulement entité-valeur.
+
+Exemple :
+
+ex:Africa rdf:type ex:Continent ;
+          ex:hasCountry <http://example.org/country/Algeria>, <http://example.org/country/Nigeria> .
+
+
+Puis une requête SPARQL comme :
+
+  SELECT ?continent ?countryName
+  WHERE {
+    ?continent ex:hasCountry ?country .
+    ?country schema:name ?countryName .
+  }
+
+
